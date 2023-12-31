@@ -1,6 +1,7 @@
 const { response } = require("express");
-const User = require("../models/User");
 const bcrypt = require("bcryptjs");
+const User = require("../models/User");
+const { generateJWT } = require("../helpers/jwt");
 
 const userRegister = async (req, res = response) => {
   const { email, password } = req.body;
@@ -61,12 +62,17 @@ const userLogin = async (req, res = response) => {
 
     delete existUser.password;
 
+    //JWT
+    const token = await generateJWT(existUser.id, existUser.name);
+
     res.status(201).json({
       status: "Success",
       uid: existUser.id,
       name: existUser.name,
+      token,
     });
   } catch (error) {
+    console.log("🚀 ~ file: auth.js:76 ~ userLogin ~ error:", error);
     res.status(500).json({
       status: "Error",
       msg: "Internal Server Error",
@@ -74,10 +80,18 @@ const userLogin = async (req, res = response) => {
   }
 };
 
-const revalidateToken = (req, res = response) => {
+const revalidateToken = async (req, res = response) => {
+  const uid = req.uid;
+  const name = req.name;
+
+  //Jwt
+  const token = await generateJWT(uid, name);
+
   res.json({
-    user: true,
-    msg: "token re-token",
+    status: "Success",
+    uid,
+    name,
+    token,
   });
 };
 
