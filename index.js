@@ -23,6 +23,7 @@ app.use(express.json());
 app.use("/api/auth", require("./routes/auth"));
 
 // CRUD,
+app.use("/api/events", require("./routes/events"));
 
 //Listen request
 app.listen(process.env.PORT, () => {
