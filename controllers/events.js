@@ -29,22 +29,78 @@ const createEvents = async (req, res = response) => {
   }
 };
 
-const updateEvents = (req, res = response) => {
-  const { uid, events } = req;
+const updateEvents = async (req, res = response) => {
+  const eventId = req.params.id;
+  const uid = req.uid;
 
-  res.status(201).json({
-    uid,
-    events,
-  });
+  try {
+    const event = await Event.findById(eventId);
+
+    if (!event) {
+      return res.status(404).json({
+        status: "success",
+        msg: "Event not exist with this Id",
+      });
+    }
+
+    if (event.user.toString() !== uid) {
+      return res.status(401).json({
+        status: "Error",
+        msg: "Do not have privileges to update this event",
+      });
+    }
+
+    const newEvent = {
+      ...req.body,
+      user: uid,
+    };
+
+    const updatedEvent = await Event.findByIdAndUpdate(eventId, newEvent, {
+      new: true,
+    });
+
+    res.status(201).json({
+      status: "Success",
+      event: updatedEvent,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "Error",
+      msg: "Internal Server Error",
+    });
+  }
 };
 
-const deleteEvents = (req, res = response) => {
-  const { uid, events } = req;
+const deleteEvents = async (req, res = response) => {
+  const eventId = req.params.id;
+  const uid = req.uid;
 
-  res.status(201).json({
-    uid,
-    events,
-  });
+  try {
+    const event = await Event.findById(eventId);
+
+    if (!event) {
+      return res.status(404).json({
+        status: "success",
+        msg: "Event not exist with this Id",
+      });
+    }
+
+    if (event.user.toString() !== uid) {
+      return res.status(401).json({
+        status: "Error",
+        msg: "Do not have privileges to delete this event",
+      });
+    }
+
+    await Event.findByIdAndDelete(eventId);
+
+    res.json({ status: "Success", msg: "Deleted" });
+  } catch (error) {
+    res.status(500).json({
+      status: "Error",
+      msg: "Internal Server Error",
+    });
+  }
 };
 
 module.exports = {
