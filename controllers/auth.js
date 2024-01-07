@@ -4,10 +4,11 @@ const User = require("../models/User");
 const { generateJWT } = require("../helpers/jwt");
 
 const userRegister = async (req, res = response) => {
-  const { email, password } = req.body;
+  const { name, email, password } = req.body;
+  const emailClean = email.toLowerCase();
 
   try {
-    let userExist = await User.findOne({ email });
+    let userExist = await User.findOne({ emailClean });
 
     if (userExist) {
       return res.status(400).json({
@@ -16,7 +17,7 @@ const userRegister = async (req, res = response) => {
       });
     }
 
-    const user = new User(req.body);
+    const user = new User({ name, email: emailClean, password });
 
     // Encrypt password
     const salt = bcrypt.genSaltSync();
@@ -24,10 +25,14 @@ const userRegister = async (req, res = response) => {
 
     await user.save();
 
+    //JWT
+    const token = await generateJWT(user.id, user.name);
+
     res.status(201).json({
       status: "Success",
       uid: user.id,
       name: user.name,
+      token,
     });
   } catch (error) {
     res.status(500).json({
@@ -65,7 +70,7 @@ const userLogin = async (req, res = response) => {
     //JWT
     const token = await generateJWT(existUser.id, existUser.name);
 
-    res.status(201).json({
+    res.status(200).json({
       status: "Success",
       uid: existUser.id,
       name: existUser.name,
