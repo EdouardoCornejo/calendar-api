@@ -7,6 +7,7 @@ API **REST** para una **aplicación de calendario** construida con **Node.js**, 
 ![Tech](https://img.shields.io/badge/MongoDB-Mongoose_8-47A248)
 ![Tech](https://img.shields.io/badge/Auth-JWT-000000)
 ![Tech](https://img.shields.io/badge/express--validator-7-blue)
+![Tech](https://img.shields.io/badge/Swagger-OpenAPI_3-85EA2D)
 
 ---
 
@@ -20,6 +21,7 @@ API **REST** para una **aplicación de calendario** construida con **Node.js**, 
     - [Instalación](#instalación)
     - [Variables de entorno](#variables-de-entorno)
     - [Scripts disponibles](#scripts-disponibles)
+    - [Documentación (Swagger)](#documentación-swagger)
   - [Endpoints](#endpoints)
     - [Autenticación](#autenticación)
     - [Eventos](#eventos)
@@ -44,6 +46,7 @@ API **REST** para una **aplicación de calendario** construida con **Node.js**, 
 - **CRUD de eventos** (`title`, `notes`, `start`, `end`) asociados al usuario que los crea. Es un **calendario compartido**: el listado devuelve los eventos de todos los usuarios con el nombre del autor (`populate`), y el cliente Calendar-app los muestra todos y distingue por color los propios.
 - **Autorización por propietario**: actualizar o eliminar un evento de otro usuario devuelve `403`.
 - **Validación** de campos obligatorios, formato de email, longitud de contraseña, fechas válidas e `id` de evento con formato de `ObjectId`, con respuesta `400` y el detalle de cada error.
+- **Documentación OpenAPI 3** con **Swagger UI** en `/api/docs`.
 - **Directorio público** (`public/`) servido como estáticos.
 
 ---
@@ -93,9 +96,23 @@ npm run dev
 
 La API escucha en el puerto definido en `PORT` (`http://localhost:4000` con el valor de ejemplo).
 
+### Documentación (Swagger)
+
+Con la API levantada, abre **Swagger UI** en:
+
+```
+http://localhost:4000/api/docs
+```
+
+Incluye todas las rutas de `Auth` y `Events` con sus cuerpos de ejemplo y las respuestas de éxito y error (`400`, `401`, `403`, `404`, `500`). Para probar las rutas protegidas: ejecuta **register** o **login** con **Try it out**, copia el `token` de la respuesta, pulsa **Authorize** y pégalo en `xToken` (se envía como cabecera `x-token`).
+
+La especificación está escrita a mano en [`docs/openapi.json`](docs/openapi.json) y también se sirve en `http://localhost:4000/api/docs.json` (útil para importarla en Postman o Insomnia). Si cambias una ruta, actualiza ese archivo.
+
 ---
 
 ## Endpoints
+
+Documentación interactiva en [`/api/docs`](http://localhost:4000/api/docs).
 
 ### Autenticación
 
@@ -133,7 +150,7 @@ curl -X POST http://localhost:4000/api/events \
 
 ### 1. `index.js`
 
-Crea el servidor Express, habilita **CORS**, sirve `public/` con `express.static`, conecta a MongoDB con `dbConnection()` (`database/config.js`), activa `express.json()`, monta las rutas `/api/auth` y `/api/events`, registra `handleJsonError` (un cuerpo JSON mal formado responde `400` en JSON en lugar de la página HTML con la traza de Express) y escucha en `PORT`.
+Crea el servidor Express, habilita **CORS**, sirve `public/` con `express.static`, conecta a MongoDB con `dbConnection()` (`database/config.js`), activa `express.json()`, monta las rutas `/api/auth` y `/api/events`, sirve Swagger UI en `/api/docs` con `swagger-ui-express` (y el documento en `/api/docs.json`), registra `handleJsonError` (un cuerpo JSON mal formado responde `400` en JSON en lugar de la página HTML con la traza de Express) y escucha en `PORT`.
 
 ### 2. Rutas y middlewares
 
@@ -186,6 +203,7 @@ Mongoose ──► MongoDB
 - **jsonwebtoken** para JWT y **bcryptjs** para contraseñas.
 - **express-validator 7** para validación y **Moment.js** para fechas.
 - **cors** y **dotenv**.
+- **swagger-ui-express** para la documentación OpenAPI.
 - **nodemon** (global) para desarrollo.
 
 ---
@@ -194,7 +212,9 @@ Mongoose ──► MongoDB
 
 ```
 calendar-api/
-├── index.js                 # Servidor Express, middlewares globales y rutas
+├── index.js                 # Servidor Express, middlewares globales, rutas y Swagger UI
+├── docs/
+│   └── openapi.json         # Especificación OpenAPI 3 (servida en /api/docs)
 ├── database/
 │   └── config.js            # dbConnection (Mongoose)
 ├── routes/

@@ -1,0 +1,821 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Calendar API",
+    "version": "1.0.0",
+    "license": {
+      "name": "ISC",
+      "url": "https://opensource.org/license/isc-license-txt"
+    },
+    "description": "REST API for a shared calendar. Users register or log in to get a JWT (valid for 2 hours) that is sent in the `x-token` header. Every user sees all events, but only the creator of an event can update or delete it."
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "This server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Auth",
+      "description": "Registration, login and token renewal."
+    },
+    {
+      "name": "Events",
+      "description": "Calendar events. Every route requires the `x-token` header."
+    }
+  ],
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Register a user",
+        "description": "Creates the user (email stored in lowercase, password hashed with bcrypt) and returns a JWT.",
+        "operationId": "register",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed, malformed JSON body, or the email is already registered.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    }
+                  ]
+                },
+                "example": {
+                  "status": "Error",
+                  "msg": "Email already exist"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "status": "Error",
+                  "msg": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Log in",
+        "description": "The email is matched case-insensitively. Returns a JWT valid for 2 hours.",
+        "operationId": "login",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Logged in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed, malformed JSON body, or wrong email/password.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    }
+                  ]
+                },
+                "example": {
+                  "status": "Error",
+                  "msg": "Email or password is not correct"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "status": "Error",
+                  "msg": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/renew": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Renew the token",
+        "description": "Signs a new 2-hour JWT for the user in the current token.",
+        "operationId": "renewToken",
+        "security": [
+          {
+            "xToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "New token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid `x-token` header.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "status": "Error",
+                  "msg": "There is no token in the request"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/events": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "List events",
+        "description": "Returns the events of every user (shared calendar) with the author's name.",
+        "operationId": "listEvents",
+        "security": [
+          {
+            "xToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "All events.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid `x-token` header.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "status": "Error",
+                  "msg": "There is no token in the request"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "Create an event",
+        "description": "The event belongs to the user in the token.",
+        "operationId": "createEvent",
+        "security": [
+          {
+            "xToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Event created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one entry per invalid field), invalid event id, or malformed JSON body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    }
+                  ]
+                },
+                "example": {
+                  "status": "Error",
+                  "error": {
+                    "title": {
+                      "type": "field",
+                      "value": "",
+                      "msg": "Title is required",
+                      "path": "title",
+                      "location": "body"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid `x-token` header.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "status": "Error",
+                  "msg": "There is no token in the request"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "status": "Error",
+                  "msg": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/events/{id}": {
+      "put": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "Update an event",
+        "description": "Replaces the event fields. Only the creator of the event can update it.",
+        "operationId": "updateEvent",
+        "security": [
+          {
+            "xToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Event id (MongoDB ObjectId).",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            },
+            "example": "6719f3c2a4b1e0c8d2f4a001"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (one entry per invalid field), invalid event id, or malformed JSON body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    }
+                  ]
+                },
+                "example": {
+                  "status": "Error",
+                  "error": {
+                    "id": {
+                      "type": "field",
+                      "value": "abc",
+                      "msg": "Invalid event id",
+                      "path": "id",
+                      "location": "params"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid `x-token` header.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "status": "Error",
+                  "msg": "There is no token in the request"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The event belongs to another user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "status": "Error",
+                  "msg": "Do not have privileges to update this event"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No event with that id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "status": "Error",
+                  "msg": "Event not exist with this Id"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "status": "Error",
+                  "msg": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "Delete an event",
+        "description": "Only the creator of the event can delete it.",
+        "operationId": "deleteEvent",
+        "security": [
+          {
+            "xToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Event id (MongoDB ObjectId).",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{24}$"
+            },
+            "example": "6719f3c2a4b1e0c8d2f4a001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Event deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "status": "Success",
+                  "msg": "Deleted"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`id` is not a valid ObjectId.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid `x-token` header.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "status": "Error",
+                  "msg": "There is no token in the request"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The event belongs to another user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "status": "Error",
+                  "msg": "Do not have privileges to delete this event"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No event with that id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "status": "Error",
+                  "msg": "Event not exist with this Id"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "status": "Error",
+                  "msg": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "xToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-token",
+        "description": "JWT returned by register, login or renew."
+      }
+    },
+    "schemas": {
+      "RegisterRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "email",
+          "password"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "example": "Ana Torres"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "ana@calendar.dev"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 6,
+            "example": "Abc123"
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "ana@calendar.dev"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 6,
+            "example": "Abc123"
+          }
+        }
+      },
+      "AuthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "Success"
+          },
+          "uid": {
+            "type": "string",
+            "example": "6719f3c2a4b1e0c8d2f4a001"
+          },
+          "name": {
+            "type": "string",
+            "example": "Ana Torres"
+          },
+          "token": {
+            "type": "string",
+            "description": "JWT, valid for 2 hours.",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          }
+        }
+      },
+      "EventInput": {
+        "type": "object",
+        "required": [
+          "title",
+          "start",
+          "end"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "example": "Sprint review"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Demo of the new calendar view"
+          },
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Any date Moment.js can parse.",
+            "example": "2026-11-02T10:00:00.000Z"
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Any date Moment.js can parse.",
+            "example": "2026-11-02T11:00:00.000Z"
+          }
+        }
+      },
+      "Event": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "6719f3c2a4b1e0c8d2f4a001"
+          },
+          "title": {
+            "type": "string",
+            "example": "Sprint review"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Demo of the new calendar view"
+          },
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-11-02T10:00:00.000Z"
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-11-02T11:00:00.000Z"
+          },
+          "user": {
+            "description": "Author id on create/update; `{ _id, name }` in the list.",
+            "oneOf": [
+              {
+                "type": "string",
+                "example": "6719f3c2a4b1e0c8d2f4a001"
+              },
+              {
+                "$ref": "#/components/schemas/EventAuthor"
+              }
+            ]
+          }
+        }
+      },
+      "EventAuthor": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "example": "6719f3c2a4b1e0c8d2f4a001"
+          },
+          "name": {
+            "type": "string",
+            "example": "Ana Torres"
+          }
+        }
+      },
+      "EventListResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "Success"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Event"
+            }
+          }
+        }
+      },
+      "EventResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "Success"
+          },
+          "event": {
+            "$ref": "#/components/schemas/Event"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "Error"
+          },
+          "msg": {
+            "type": "string",
+            "example": "Invalid token"
+          }
+        }
+      },
+      "ValidationErrorResponse": {
+        "type": "object",
+        "description": "express-validator `errors.mapped()`: one entry per invalid field.",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "Error"
+          },
+          "error": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "field"
+                },
+                "value": {
+                  "example": "not-an-email"
+                },
+                "msg": {
+                  "type": "string",
+                  "example": "Email is required"
+                },
+                "path": {
+                  "type": "string",
+                  "example": "email"
+                },
+                "location": {
+                  "type": "string",
+                  "example": "body"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

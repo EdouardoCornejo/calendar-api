@@ -1,6 +1,8 @@
 const { dbConnection } = require("./database/config");
 const express = require("express");
 const cors = require("cors");
+const swaggerUi = require("swagger-ui-express");
+const openApiDocument = require("./docs/openapi.json");
 const { handleJsonError } = require("./middlewares/handle-json-error");
 require("dotenv").config();
 
@@ -25,6 +27,14 @@ app.use("/api/auth", require("./routes/auth"));
 
 // CRUD,
 app.use("/api/events", require("./routes/events"));
+
+// Docs
+app.get("/api/docs.json", (req, res) => res.json(openApiDocument));
+app.use(
+  "/api/docs",
+  swaggerUi.serve,
+  swaggerUi.setup(openApiDocument, { customSiteTitle: "Calendar API docs" })
+);
 
 // Errors
 app.use(handleJsonError);
