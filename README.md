@@ -43,7 +43,7 @@ API **REST** para una **aplicación de calendario** construida con **Node.js**, 
 - **Renovación del token** (`/api/auth/renew`) a partir del token actual.
 - **CRUD de eventos** (`title`, `notes`, `start`, `end`) asociados al usuario que los crea. Es un **calendario compartido**: el listado devuelve los eventos de todos los usuarios con el nombre del autor (`populate`), y el cliente Calendar-app los muestra todos y distingue por color los propios.
 - **Autorización por propietario**: actualizar o eliminar un evento de otro usuario devuelve `403`.
-- **Validación** de campos obligatorios, formato de email, longitud de contraseña y fechas válidas, con respuesta `400` y el detalle de cada error.
+- **Validación** de campos obligatorios, formato de email, longitud de contraseña, fechas válidas e `id` de evento con formato de `ObjectId`, con respuesta `400` y el detalle de cada error.
 - **Directorio público** (`public/`) servido como estáticos.
 
 ---
@@ -167,7 +167,7 @@ Cliente HTTP
    ▼
 validateJwt ──► jwt.verify(SECRET_JWT_SEED) → req.uid, req.name
    ▼
-check(...) + isDate  ──►  validateFields  → 400 si hay errores
+param(id) + check(...) + isDate  ──►  validateFields  → 400 si hay errores
    ▼
 updateEvents
    ├─ Event.findById(id)            → 404 si no existe

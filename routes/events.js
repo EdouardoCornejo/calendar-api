@@ -1,7 +1,7 @@
 const { validateJwt } = require("../middlewares/validate-jwt");
 const { validateFields } = require("../middlewares/validate-fields");
 const { isDate } = require("../helpers/isDate");
-const { check } = require("express-validator");
+const { check, param } = require("express-validator");
 const { Router } = require("express");
 const {
   getEvents,
@@ -34,6 +34,7 @@ router.post(
 router.put(
   "/:id",
   [
+    param("id", "Invalid event id").isMongoId(),
     check("title", "Title is required").not().isEmpty(),
     check("start", "Start date is required").custom(isDate),
     check("end", "End date is required").custom(isDate),
@@ -43,6 +44,10 @@ router.put(
 );
 
 // Delete events
-router.delete("/:id", deleteEvents);
+router.delete(
+  "/:id",
+  [param("id", "Invalid event id").isMongoId(), validateFields],
+  deleteEvents
+);
 
 module.exports = router;
