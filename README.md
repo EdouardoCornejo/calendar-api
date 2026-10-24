@@ -133,7 +133,7 @@ curl -X POST http://localhost:4000/api/events \
 
 ### 1. `index.js`
 
-Crea el servidor Express, habilita **CORS**, sirve `public/` con `express.static`, conecta a MongoDB con `dbConnection()` (`database/config.js`), activa `express.json()`, monta las rutas `/api/auth` y `/api/events` y escucha en `PORT`.
+Crea el servidor Express, habilita **CORS**, sirve `public/` con `express.static`, conecta a MongoDB con `dbConnection()` (`database/config.js`), activa `express.json()`, monta las rutas `/api/auth` y `/api/events`, registra `handleJsonError` (un cuerpo JSON mal formado responde `400` en JSON en lugar de la página HTML con la traza de Express) y escucha en `PORT`.
 
 ### 2. Rutas y middlewares
 
@@ -205,6 +205,7 @@ calendar-api/
 │   └── events.js            # getEvents, createEvents, updateEvents, deleteEvents
 ├── middlewares/
 │   ├── validate-fields.js   # Errores de express-validator
+│   ├── handle-json-error.js # 400 para cuerpos JSON mal formados
 │   └── validate-jwt.js      # Verificación de x-token
 ├── helpers/
 │   ├── jwt.js               # generateJWT

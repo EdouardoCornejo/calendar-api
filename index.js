@@ -1,6 +1,7 @@
 const { dbConnection } = require("./database/config");
 const express = require("express");
 const cors = require("cors");
+const { handleJsonError } = require("./middlewares/handle-json-error");
 require("dotenv").config();
 
 //Create express server
@@ -24,6 +25,9 @@ app.use("/api/auth", require("./routes/auth"));
 
 // CRUD,
 app.use("/api/events", require("./routes/events"));
+
+// Errors
+app.use(handleJsonError);
 
 //Listen request
 app.listen(process.env.PORT, () => {
