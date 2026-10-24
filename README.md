@@ -42,7 +42,7 @@ API **REST** para una **aplicación de calendario** construida con **Node.js**, 
 - **Login** (email sin distinguir mayúsculas) que devuelve `uid`, `name` y un **JWT** válido durante **2 horas**.
 - **Renovación del token** (`/api/auth/renew`) a partir del token actual.
 - **CRUD de eventos** (`title`, `notes`, `start`, `end`) asociados al usuario que los crea. Es un **calendario compartido**: el listado devuelve los eventos de todos los usuarios con el nombre del autor (`populate`), y el cliente Calendar-app los muestra todos y distingue por color los propios.
-- **Autorización por propietario**: actualizar o eliminar un evento de otro usuario devuelve `401`.
+- **Autorización por propietario**: actualizar o eliminar un evento de otro usuario devuelve `403`.
 - **Validación** de campos obligatorios, formato de email, longitud de contraseña y fechas válidas, con respuesta `400` y el detalle de cada error.
 - **Directorio público** (`public/`) servido como estáticos.
 
@@ -150,7 +150,7 @@ Crea el servidor Express, habilita **CORS**, sirve `public/` con `express.static
 - `controllers/events.js`:
   - `getEvents` hace `Event.find().populate("user", "name")` sin filtrar por usuario (calendario compartido); la restricción por propietario solo aplica a editar y borrar.
   - `createEvents` asigna `req.uid` como `user` y guarda.
-  - `updateEvents` / `deleteEvents` buscan el evento, devuelven `404` si no existe y `401` si `event.user` no coincide con `req.uid`; luego usan `findByIdAndUpdate` (`new: true`) o `findByIdAndDelete`.
+  - `updateEvents` / `deleteEvents` buscan el evento, devuelven `404` si no existe y `403` si `event.user` no coincide con `req.uid`; luego usan `findByIdAndUpdate` (`new: true`) o `findByIdAndDelete`.
 
 ### 4. Modelos y helpers
 
@@ -171,7 +171,7 @@ check(...) + isDate  ──►  validateFields  → 400 si hay errores
    ▼
 updateEvents
    ├─ Event.findById(id)            → 404 si no existe
-   ├─ event.user === req.uid ?      → 401 si no es el dueño
+   ├─ event.user === req.uid ?      → 403 si no es el dueño
    └─ Event.findByIdAndUpdate()
    ▼
 Mongoose ──► MongoDB

@@ -4,8 +4,8 @@ const Event = require("../models/Events");
 const getEvents = async (req, res = response) => {
   const events = await Event.find().populate("user", "name");
 
-  res.status(201).json({
-    status: "success",
+  res.status(200).json({
+    status: "Success",
     events,
   });
 };
@@ -18,7 +18,7 @@ const createEvents = async (req, res = response) => {
     const eventDB = await event.save();
 
     res.status(201).json({
-      status: "sueccess",
+      status: "Success",
       event: eventDB,
     });
   } catch (error) {
@@ -38,13 +38,13 @@ const updateEvents = async (req, res = response) => {
 
     if (!event) {
       return res.status(404).json({
-        status: "success",
+        status: "Error",
         msg: "Event not exist with this Id",
       });
     }
 
     if (event.user.toString() !== uid) {
-      return res.status(401).json({
+      return res.status(403).json({
         status: "Error",
         msg: "Do not have privileges to update this event",
       });
@@ -59,7 +59,7 @@ const updateEvents = async (req, res = response) => {
       new: true,
     });
 
-    res.status(201).json({
+    res.status(200).json({
       status: "Success",
       event: updatedEvent,
     });
@@ -80,13 +80,13 @@ const deleteEvents = async (req, res = response) => {
 
     if (!event) {
       return res.status(404).json({
-        status: "success",
+        status: "Error",
         msg: "Event not exist with this Id",
       });
     }
 
     if (event.user.toString() !== uid) {
-      return res.status(401).json({
+      return res.status(403).json({
         status: "Error",
         msg: "Do not have privileges to delete this event",
       });
