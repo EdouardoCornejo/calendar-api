@@ -8,7 +8,7 @@ const userRegister = async (req, res = response) => {
   const emailClean = email.toLowerCase();
 
   try {
-    let userExist = await User.findOne({ emailClean });
+    let userExist = await User.findOne({ email: emailClean });
 
     if (userExist) {
       return res.status(400).json({
@@ -44,9 +44,10 @@ const userRegister = async (req, res = response) => {
 
 const userLogin = async (req, res = response) => {
   const { email, password } = req.body;
+  const emailClean = email.toLowerCase();
 
   try {
-    const existUser = await User.findOne({ email });
+    const existUser = await User.findOne({ email: emailClean });
 
     if (!existUser) {
       return res.status(400).json({

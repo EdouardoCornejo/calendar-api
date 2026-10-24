@@ -38,10 +38,10 @@ API **REST** para una **aplicación de calendario** construida con **Node.js**, 
 
 ## Qué hace el proyecto
 
-- **Registro** (`name`, `email`, `password`) con el email normalizado a minúsculas y la contraseña cifrada con **bcryptjs**.
-- **Login** que devuelve `uid`, `name` y un **JWT** válido durante **2 horas**.
+- **Registro** (`name`, `email`, `password`) con el email normalizado a minúsculas, rechazo de emails ya registrados (`400`) y la contraseña cifrada con **bcryptjs**.
+- **Login** (email sin distinguir mayúsculas) que devuelve `uid`, `name` y un **JWT** válido durante **2 horas**.
 - **Renovación del token** (`/api/auth/renew`) a partir del token actual.
-- **CRUD de eventos** (`title`, `notes`, `start`, `end`) asociados al usuario que los crea; el listado incluye el nombre del autor (`populate`).
+- **CRUD de eventos** (`title`, `notes`, `start`, `end`) asociados al usuario que los crea. Es un **calendario compartido**: el listado devuelve los eventos de todos los usuarios con el nombre del autor (`populate`), y el cliente Calendar-app los muestra todos y distingue por color los propios.
 - **Autorización por propietario**: actualizar o eliminar un evento de otro usuario devuelve `401`.
 - **Validación** de campos obligatorios, formato de email, longitud de contraseña y fechas válidas, con respuesta `400` y el detalle de cada error.
 - **Directorio público** (`public/`) servido como estáticos.
@@ -113,7 +113,7 @@ Base: `/api/events` — todas las rutas requieren la cabecera **`x-token: <jwt>`
 
 | Método   | Ruta   | Descripción                          | Cuerpo                                |
 | -------- | ------ | ------------------------------------ | ------------------------------------- |
-| `GET`    | `/`    | Lista los eventos con el autor       | —                                     |
+| `GET`    | `/`    | Lista los eventos de todos los usuarios con el autor | —                     |
 | `POST`   | `/`    | Crea un evento del usuario actual    | `{ title, notes?, start, end }`       |
 | `PUT`    | `/:id` | Actualiza un evento propio           | `{ title, notes?, start, end }`       |
 | `DELETE` | `/:id` | Elimina un evento propio             | —                                     |
@@ -144,11 +144,11 @@ Crea el servidor Express, habilita **CORS**, sirve `public/` con `express.static
 ### 3. Controladores
 
 - `controllers/auth.js`:
-  - `userRegister` normaliza el email, cifra la contraseña con `bcrypt.genSaltSync` + `hashSync`, guarda el usuario y genera el token.
-  - `userLogin` busca por email, compara con `bcrypt.compareSync` y genera el token.
+  - `userRegister` normaliza el email, comprueba con `User.findOne({ email })` que no exista ya (si existe responde `400`), cifra la contraseña con `bcrypt.genSaltSync` + `hashSync`, guarda el usuario y genera el token.
+  - `userLogin` normaliza el email a minúsculas igual que el registro, busca por email, compara con `bcrypt.compareSync` y genera el token.
   - `revalidateToken` firma un token nuevo con el `uid` y `name` del token actual.
 - `controllers/events.js`:
-  - `getEvents` hace `Event.find().populate("user", "name")`.
+  - `getEvents` hace `Event.find().populate("user", "name")` sin filtrar por usuario (calendario compartido); la restricción por propietario solo aplica a editar y borrar.
   - `createEvents` asigna `req.uid` como `user` y guarda.
   - `updateEvents` / `deleteEvents` buscan el evento, devuelven `404` si no existe y `401` si `event.user` no coincide con `req.uid`; luego usan `findByIdAndUpdate` (`new: true`) o `findByIdAndDelete`.
 
